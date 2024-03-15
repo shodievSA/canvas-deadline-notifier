@@ -2,11 +2,11 @@ import isUpcoming from "./utils/isUpcoming.js";
 
 class Resources {
 
+    // private field
     #apiRoot = "https://canvas.instructure.com/api/v1/";
 
     constructor(token) {
 
-        this.token = token,
         this.getCourses = async () => 
         {
             const parameter = "enrollment_state=active";
@@ -15,7 +15,7 @@ class Resources {
                 const response = await fetch(`${this.#apiRoot}courses?${parameter}`, 
                 {
                     headers: {
-                        "Authorization": `Bearer ${this.token}`
+                        "Authorization": `Bearer ${token}`
                     }
                 });
 
@@ -55,7 +55,7 @@ class Resources {
                     const response = await fetch(`${this.#apiRoot}${endpoint}?${parameter}`, 
                     {
                         headers: {
-                            "Authorization": `Bearer ${this.token}`
+                            "Authorization": `Bearer ${token}`
                         }
                     });
 
@@ -66,6 +66,7 @@ class Resources {
                         // converts ISO 8601 format into timestamp (ms since epoch)
                         const deadline = Date.parse(assignment.due_at);
     
+                        // checks if an assignment expires within 24 hours
                         if (isUpcoming(deadline)) {
     
                             result.push({

@@ -18,6 +18,7 @@ async function scheduleNotifications(assignments, resources, ctx) {
                 return obj.id;
             });
 
+            // compares assignment IDs
             if (assignmentIDs.includes(assignment.id)) {
 
                 ctx.sendMessage(
