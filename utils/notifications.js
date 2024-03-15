@@ -14,7 +14,7 @@ async function scheduleNotifications(assignments, resources, ctx) {
 
             // Making the same request to ensure a student hasn't completed any
             // assignments the bot is about to notify about. Returns an array of assignment ids
-            const assignmentIDs = await resources.getAssignments().map((obj) => {
+            const assignmentIDs = (await resources.getAssignments()).map((obj) => {
                 return obj.id;
             });
 
