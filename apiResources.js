@@ -1,67 +1,87 @@
+import { oneDay } from "./time.js";
 import isUpcoming from "./utils/isUpcoming.js";
+import { createClient } from "redis";
+
+const client = await createClient()
+  .on('error', err => console.log('Redis Client Error', err))
+  .connect();
 
 class Resources {
 
-    // private field
-    #apiRoot = "https://canvas.instructure.com/api/v1/";
+    // private fields
+    #root = "https://canvas.instructure.com/api/v1/";
+    #getCourses = async (token) => {
+
+        try {
+
+            const endpoint = `${this.#root}courses?enrollment_state=active`;
+
+            const response = await fetch(endpoint, {
+                headers: {
+                    "Authorization": `Bearer ${token}`
+                }
+            });
+
+            const jsonResponse = await response.json();
+
+            const courses = [];
+
+            for (const { id, name } of jsonResponse) {
+
+                courses.push({
+                    id: id,
+                    name: name.split("  ")[1]
+                });
+
+            }
+
+            return courses;
+
+        } 
+        catch(error) {
+            console.log(error);
+        }
+
+    };
 
     constructor(token) {
 
-        this.getCourses = async () => 
-        {
-            const parameter = "enrollment_state=active";
+        this.getAssignments = async () => {
 
-            try {
-                const response = await fetch(`${this.#apiRoot}courses?${parameter}`, 
-                {
-                    headers: {
-                        "Authorization": `Bearer ${token}`
-                    }
+            let courses;
+
+            const redisCache = await client.get("courses");
+
+            if (redisCache !== null) {
+
+                courses = JSON.parse(redisCache);
+
+            } else {
+
+                courses = await this.#getCourses(token);
+                await client.set("courses", JSON.stringify(courses), {
+                    EX: (oneDay * 7) / 1000
                 });
 
-                const courses = await response.json();
-
-                let result = [];
-
-                for (const { id, name } of courses) {
-
-                    result.push({
-                        id: id,
-
-                        // Captures only the name of the course (ignores course code and year)
-                        name: name.split("  ")[1]
-                    });
-
-                }
-
-                return result;
-            } 
-            catch(error) {
-                console.log(error);
             }
-        },
-        this.getAssignments = async () => 
-        {
-            const parameter = "bucket=unsubmitted";
-            const courses = await this.getCourses();
 
-            let result = [];
+            let assignments = [];
 
             for (const course of courses) {
 
-                const endpoint = `courses/${course.id}/assignments`;
-
                 try {
-                    const response = await fetch(`${this.#apiRoot}${endpoint}?${parameter}`, 
-                    {
+
+                    const endpoint = `${this.#root}courses/${course.id}/assignments?bucket=unsubmitted`;
+
+                    const response = await fetch(endpoint, {
                         headers: {
                             "Authorization": `Bearer ${token}`
                         }
                     });
 
-                    const assignments = await response.json();
+                    const jsonResponse = await response.json();
 
-                    for (const assignment of assignments) {
+                    for (const assignment of jsonResponse) {
 
                         // converts ISO 8601 format into timestamp (ms since epoch)
                         const deadline = Date.parse(assignment.due_at);
@@ -69,7 +89,7 @@ class Resources {
                         // checks if an assignment expires within 24 hours
                         if (isUpcoming(deadline)) {
     
-                            result.push({
+                            assignments.push({
                                 deadline: deadline, 
                                 assignment: assignment.name, 
                                 course: course.name,
@@ -78,13 +98,12 @@ class Resources {
 
                         }
                     }
-                } catch(error) 
-                {
+                } catch(error) {
                     console.log(error);
                 }
             }
 
-            return result;
+            return assignments;
         }
     }   
 }
