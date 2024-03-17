@@ -1,5 +1,5 @@
 import { oneDay } from "./time.js";
-import isUpcoming from "./utils/isUpcoming.js";
+import isUpcoming from "./utils/bot/isUpcoming.js";
 import { createClient } from "redis";
 
 const client = await createClient()

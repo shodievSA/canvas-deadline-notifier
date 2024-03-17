@@ -55,7 +55,7 @@ bot.on("message", async (ctx) => {
             await updateTokenOfUserOnDB(user.id, CANVAS_TOKEN);
 
             // This function starts the cron task.
-            await startCronTask(ctx);
+            startCronTask(ctx);
             await ctx.sendMessage("The bot is up and running!");
         }
         else {
