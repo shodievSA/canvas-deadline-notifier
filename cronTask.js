@@ -1,11 +1,14 @@
 import { CronJob } from "cron";
 import Resources from "./apiResources.js";
-import scheduleNotifications from "./utils/notifications.js";
-
-function startCronTask(token, ctx) {
+import scheduleNotifications from "./utils/bot/notifications.js";
+import getTokenOfUserFromDB from "./utils/database/getToken.js";
+function startCronTask(ctx) {
     
     // This class provides two methods which return student info - unsubmitted assignments
-    // and active courses. 
+    // and active courses.
+    const user = ctx.from
+    const telegramId = user.id
+    const token = getTokenOfUserFromDB(telegramId);
     const resources = new Resources(token);
     
     // This class creates a new cron task (but doesn't active it yet). The first argument 

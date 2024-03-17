@@ -1,4 +1,4 @@
-import { sixHours } from "../time.js";
+import { sixHours } from "../../time.js";
 
 async function scheduleNotifications(assignments, resources, ctx) {
 

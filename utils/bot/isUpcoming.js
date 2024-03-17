@@ -1,4 +1,4 @@
-import { oneDay } from "../time.js";
+import { oneDay } from "../../time.js";
 
 function isUpcoming(deadline)
 {

@@ -1,4 +1,4 @@
-import isUpcoming from "./utils/isUpcoming.js";
+import isUpcoming from "./utils/bot/isUpcoming.js";
 
 class Resources {
 
