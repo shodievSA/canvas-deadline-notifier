@@ -2,7 +2,7 @@ import { oneDay } from "./time.js";
 import { createClient } from "redis";
 import isUpcoming from "./utils/bot/isUpcoming.js";
 
-const client = await createClient(process.env.REDIS_DATABASE)
+const client = await createClient()
 .on('error', (err) => console.log('Redis Client Error', err))
 .connect();
 
