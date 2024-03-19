@@ -1,6 +1,8 @@
 import { Sequelize, DataTypes } from 'sequelize';
 
-const sequelize = new Sequelize('postgres://postgres:abbos2504@localhost:5432/postgres');
+const sequelize = new Sequelize(
+    `postgres://${process.env.DB_USER}:${process.env.DB_PASSWORD}@${process.env.DB_HOST}:5432/${process.env.DB_NAME}`
+);
 
 
 export const User = sequelize.define('User', {
