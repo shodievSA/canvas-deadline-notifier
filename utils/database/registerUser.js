@@ -3,16 +3,18 @@ import { User } from '../../database/index.js';
 async function registerUserOnDB(user) {
     try {
         const existingUser = await User.findOne({ where: { telegramId: user.id } });
+
+        console.log(existingUser)
         
         if (existingUser) {
             console.log("User found");
         } else {
             const data = {
                 telegramId: user.id,
-                phoneNumber: user.phone_number,
+                // phoneNumber: user.phone_number,
                 username: user.username,
                 firstName: user.first_name,
-                lastName: user.last_name,
+                // lastName: user.last_name,
             };
 
             const newUser = await User.create(data);

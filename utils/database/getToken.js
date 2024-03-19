@@ -1,8 +1,8 @@
 import { User } from "../../database/index.js";
 
-function getTokenOfUserFromDB(telegramId){
+async function getTokenOfUserFromDB(telegramId){
     try {
-        const existingUser = User.findOne({ where: { telegramId: telegramId } });
+        const existingUser = await User.findOne({ where: { telegramId: telegramId } });
         const token = existingUser.canvasToken;
         return token;
     }

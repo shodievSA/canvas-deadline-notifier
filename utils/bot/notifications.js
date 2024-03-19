@@ -4,21 +4,15 @@ async function scheduleNotifications(assignments, resources, ctx) {
 
     for (const assignment of assignments) {
 
-        // Returns the current time in milliseconds
         const currentTime = new Date().getTime();
+        const deadline = Date.parse(assignment.deadline);
 
-        // Specifies the delay of setTimeout() in milliseconds
-        const delay = assignment.deadline - currentTime - sixHours;
+        const delay = deadline - currentTime - sixHours; 
 
         setTimeout(async () => {
 
-            // Making the same request to ensure a student hasn't completed any
-            // assignments the bot is about to notify about. Returns an array of assignment ids
-            const assignmentIDs = (await resources.getAssignments()).map((obj) => {
-                return obj.id;
-            });
+            const assignmentIDs = (await resources.getAssignments()).map((obj) => obj.id);
 
-            // compares assignment IDs
             if (assignmentIDs.includes(assignment.id)) {
 
                 ctx.sendMessage(
@@ -31,10 +25,10 @@ async function scheduleNotifications(assignments, resources, ctx) {
                     }
                 );
 
-            }
+            };
                 
         }, delay);
-    }
-}
+    };
+};
 
 export default scheduleNotifications;

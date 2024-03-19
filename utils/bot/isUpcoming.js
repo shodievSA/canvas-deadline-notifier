@@ -1,11 +1,10 @@
 import { oneDay } from "../../time.js";
 
-function isUpcoming(deadline)
-{
-    // returns current time in a timestamp format
-    const currentTime = new Date().getTime();
+function isUpcoming(assignment) {
 
-    return (deadline - currentTime <= oneDay) ? true : false;
+    const expiresIn = Date.parse(assignment.due_at) - new Date().getTime();
+    return (expiresIn > 0 && expiresIn <= oneDay) ? true : false;
+    
 }
 
 export default isUpcoming;

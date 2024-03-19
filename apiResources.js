@@ -1,17 +1,15 @@
 import { oneDay } from "./time.js";
-import isUpcoming from "./utils/bot/isUpcoming.js";
 import { createClient } from "redis";
+import isUpcoming from "./utils/bot/isUpcoming.js";
 
 const client = await createClient()
-  .on('error', err => console.log('Redis Client Error', err))
-  .connect();
+.on('error', (err) => console.log('Redis Client Error', err))
+.connect();
 
 class Resources {
 
-    // private fields
     #root = "https://canvas.instructure.com/api/v1/";
     #getCourses = async (token) => {
-
         try {
 
             const endpoint = `${this.#root}courses?enrollment_state=active`;
@@ -30,27 +28,27 @@ class Resources {
 
                 courses.push({
                     id: id,
-                    name: name.split("  ")[1]
+                    name: name
                 });
 
-            }
+            };
 
             return courses;
 
         } 
         catch(error) {
             console.log(error);
-        }
+        };
 
     };
 
-    constructor(token) {
+    constructor(token, userID) {
 
         this.getAssignments = async () => {
 
             let courses;
 
-            const redisCache = await client.get("courses");
+            const redisCache = await client.get(`user:${userID}:telegram_id`);
 
             if (redisCache !== null) {
 
@@ -59,11 +57,12 @@ class Resources {
             } else {
 
                 courses = await this.#getCourses(token);
-                await client.set("courses", JSON.stringify(courses), {
+
+                await client.set(`user:${userID}:telegram_id`, JSON.stringify(courses), {
                     EX: (oneDay * 7) / 1000
                 });
 
-            }
+            };
 
             let assignments = [];
 
@@ -82,30 +81,28 @@ class Resources {
                     const jsonResponse = await response.json();
 
                     for (const assignment of jsonResponse) {
-
-                        // converts ISO 8601 format into timestamp (ms since epoch)
-                        const deadline = Date.parse(assignment.due_at);
     
-                        // checks if an assignment expires within 24 hours
-                        if (isUpcoming(deadline)) {
+                        if (isUpcoming(assignment)) {
     
                             assignments.push({
-                                deadline: deadline, 
+                                deadline: assignment.due_at, 
                                 assignment: assignment.name, 
                                 course: course.name,
                                 id: assignment.id 
                             });
 
-                        }
-                    }
+                        };
+
+                    };
+
                 } catch(error) {
                     console.log(error);
-                }
-            }
+                };
+            };
 
             return assignments;
-        }
-    }   
-}
+        };
+    };  
+};
 
 export default Resources;
