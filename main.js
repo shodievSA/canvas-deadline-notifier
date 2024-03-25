@@ -8,8 +8,6 @@ import registerUserOnDB from "./utils/database/registerUser.js";
 import updateTokenOfUserOnDB from "./utils/database/handleToken.js";
 import scheduleNotificationsForAllUsers from "./utils/bot/scheduleNotificationsForAllUsers.js";
 
-
-
 await scheduleNotificationsForAllUsers()
 
 bot.start(async (ctx) => {
@@ -61,10 +59,28 @@ bot.on("message", async (ctx) => {
             await startCronTask(userID, ctx);
 
             const resources = new Resources(CANVAS_TOKEN, userID);
-            const assignments = await resources.getAssignments();
-            scheduleNotifications(assignments, resources, ctx);
 
-            await ctx.sendMessage("The bot is up and running!");
+            const assignments = (await resources.getAssignments()).filter((assignment) => {
+
+                const notificationTime = Date.parse(assignment.deadline) - sixHours;
+                const currentTime = new Date().getTime();
+
+                if (currentTime < notificationTime)
+                {
+                    return assignment;
+                }
+
+            }); 
+
+            if (assignments.length > 0)
+            {
+                scheduleNotifications(assignments, resources, ctx);
+            }
+
+            await ctx.sendMessage(
+                `The bot is up and running! From now on, if you have any deadline that expires ` +
+                `in 6 hours, you will receive notification about it!`
+            );
 
         } else {
 
