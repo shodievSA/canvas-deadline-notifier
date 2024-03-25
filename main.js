@@ -9,7 +9,6 @@ import updateTokenOfUserOnDB from "./utils/database/handleToken.js";
 import scheduleNotificationsForAllUsers from "./utils/bot/scheduleNotificationsForAllUsers.js";
 import { sixHours } from "./time.js";
 
-await scheduleNotificationsForAllUsers()
 
 bot.start(async (ctx) => {
 
