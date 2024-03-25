@@ -7,6 +7,7 @@ import validateToken from "./utils/bot/tokenValidation.js"
 import registerUserOnDB from "./utils/database/registerUser.js";
 import updateTokenOfUserOnDB from "./utils/database/handleToken.js";
 import scheduleNotificationsForAllUsers from "./utils/bot/scheduleNotificationsForAllUsers.js";
+import { sixHours } from "./time.js";
 
 await scheduleNotificationsForAllUsers()
 
@@ -56,7 +57,7 @@ bot.on("message", async (ctx) => {
             const userID = ctx.from.id;
 
             await updateTokenOfUserOnDB(userID, CANVAS_TOKEN);
-            await startCronTask(userID, ctx);
+            await startCronTask(userID);
 
             const resources = new Resources(CANVAS_TOKEN, userID);
 
@@ -65,16 +66,14 @@ bot.on("message", async (ctx) => {
                 const notificationTime = Date.parse(assignment.deadline) - sixHours;
                 const currentTime = new Date().getTime();
 
-                if (currentTime < notificationTime)
-                {
+                if (currentTime < notificationTime) {
                     return assignment;
                 }
 
-            }); 
+            });
 
-            if (assignments.length > 0)
-            {
-                scheduleNotifications(assignments, resources, ctx);
+            if (assignments.length > 0) {
+                scheduleNotifications(assignments, resources, userID);
             }
 
             await ctx.sendMessage(
