@@ -1,12 +1,16 @@
-import { Telegraf } from "telegraf";
+import { bot } from "./config/integrations.js";
 import { messages } from "./messages.js";
+import Resources from "./apiResources.js";
+import scheduleNotifications from "./utils/bot/notifications.js";
 import startCronTask from "./cronTask.js";
 import validateToken from "./utils/bot/tokenValidation.js"
 import registerUserOnDB from "./utils/database/registerUser.js";
 import updateTokenOfUserOnDB from "./utils/database/handleToken.js";
-import 'dotenv/config';
+import scheduleNotificationsForAllUsers from "./utils/bot/scheduleNotificationsForAllUsers.js";
 
-const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN);
+
+
+await scheduleNotificationsForAllUsers()
 
 bot.start(async (ctx) => {
 
@@ -29,7 +33,7 @@ bot.command("instructions", async (ctx) => {
 bot.command("set", async (ctx) => {
 
     const user = ctx.from;
-    
+
     const replyMarkup = {
         force_reply: true,
         input_field_placeholder: "Reply with your token"
@@ -55,6 +59,10 @@ bot.on("message", async (ctx) => {
 
             await updateTokenOfUserOnDB(userID, CANVAS_TOKEN);
             await startCronTask(userID, ctx);
+
+            const resources = new Resources(CANVAS_TOKEN, userID);
+            const assignments = await resources.getAssignments();
+            scheduleNotifications(assignments, resources, ctx);
 
             await ctx.sendMessage("The bot is up and running!");
 
