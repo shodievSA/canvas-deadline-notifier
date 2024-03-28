@@ -2,10 +2,9 @@ import { CronJob } from "cron";
 import Resources from "./apiResources.js";
 import scheduleNotifications from "./utils/bot/notifications.js";
 import getTokenOfUserFromDB from "./utils/database/getToken.js";
-import { bot } from "./config/integrations.js";
 
-async function startCronTask(userID) {
-
+async function startCronTask(userID)
+{
     const token = await getTokenOfUserFromDB(userID);
     const resources = new Resources(token, userID);
 
