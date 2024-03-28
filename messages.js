@@ -6,7 +6,7 @@ export const messages = {
               `@abbos_shodiev or @javoxirone.`,
 
     guide: `-> To set up this bot, you'll need to provide your canvas token. ` +
-           `You can obtain this token at (https://worldclassroom.webster.edu/profile/settings).\n\n` +
+           `You can obtain this token at https://worldclassroom.webster.edu/profile/settings.\n\n` +
            `-> When the webpage loads, scroll down until you see the <b>New Access Token</b> button. ` +
            `Click on it, and fulfill the form.\n\n` +
            `-> In the <b>Purpose</b> field, you can enter "CDN Bot" (or whatever you want). ` +
