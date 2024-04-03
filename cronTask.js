@@ -3,8 +3,8 @@ import Resources from "./apiResources.js";
 import scheduleNotifications from "./utils/bot/notifications.js";
 import getTokenOfUserFromDB from "./utils/database/getToken.js";
 
-async function startCronTask(userID) {
-
+async function startCronTask(userID)
+{
     const token = await getTokenOfUserFromDB(userID);
     const resources = new Resources(token, userID);
 
