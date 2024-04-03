@@ -59,8 +59,7 @@ async function main()
                 const date = new Date();
                 const deadline = new Date(item.deadline);
     
-                // if (date.getDay() == deadline.getDay()) return item;
-                return item;
+                if (date.getDay() == deadline.getDay()) return item;
                 
             });
 
