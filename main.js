@@ -7,6 +7,7 @@ import startCronTask from "./cronTask.js";
 import validateToken from "./utils/bot/tokenValidation.js"
 import registerUserOnDB from "./utils/database/registerUser.js";
 import updateTokenOfUserOnDB from "./utils/database/handleToken.js";
+import getTokenOfUserFromDB from "./utils/database/getToken.js";
 import scheduleNotificationsForAllUsers from "./utils/bot/scheduleNotificationsForAllUsers.js";
 
 async function main()
@@ -43,6 +44,60 @@ async function main()
         await registerUserOnDB(user);
         await ctx.sendMessage("Enter your token:", { reply_markup: replyMarkup });
     
+    });
+
+    bot.command("deadlines", async (ctx) => {
+
+        const userID = ctx.from.id;
+        const token = await getTokenOfUserFromDB(userID);
+
+        if (token !== null) {
+
+            const resources = new Resources(token, userID);
+            const assignments = (await resources.getAssignments()).filter((item) => {
+
+                const date = new Date();
+                const deadline = new Date(item.deadline);
+    
+                if (date.getDay() == deadline.getDay()) return item;
+                
+            });
+
+            if (assignments.length > 0) {
+
+                let message = ``;
+    
+                assignments.map((item, index) => {   
+
+                    const { course, assignment } = item;
+                    const deadline = new Date(item.deadline);
+    
+                    let date = deadline.toDateString();
+                    date = `${date} ${String(deadline.getHours())}:${String(deadline.getMinutes())}`;
+    
+                    message = message + `\n\n${index + 1}.\n\n<b>Course Name:</b> ${course}\n\n` +
+                                        `<b>Assignment Name:</b> ${assignment}\n\n` +
+                                        `<b>Deadline:</b> ${date}`
+                });
+    
+                ctx.sendMessage(
+                    message,
+                    {
+                        parse_mode: "HTML"
+                    }
+                )
+
+            } else {
+
+                ctx.sendMessage("You don't have any deadlines today.");
+
+            }
+        }
+        else {
+
+            ctx.sendMessage("You didn't provide your token!");
+
+        }
     });
 
     bot.on("message", async (ctx) => {
