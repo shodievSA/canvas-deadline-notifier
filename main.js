@@ -9,12 +9,10 @@ import registerUserOnDB from "./utils/database/registerUser.js";
 import updateTokenOfUserOnDB from "./utils/database/handleToken.js";
 import getTokenOfUserFromDB from "./utils/database/getToken.js";
 import scheduleNotificationsForAllUsers from "./utils/bot/scheduleNotificationsForAllUsers.js";
-import startCronTaskForTokenNotification from "./utils/bot/startCronTaskForTokenNotification.js";
 
 async function main()
 {
     await scheduleNotificationsForAllUsers();
-    await startCronTaskForTokenNotification();
     
     bot.start(async (ctx) => {
 
