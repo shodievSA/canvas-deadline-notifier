@@ -3,7 +3,8 @@ export const messages = {
               `-> The goal of this project is to ensure that a student doesn't miss ` +
               `his/her assignments. To set up the bot, run the /instructions command.\n\n` +
               `-> If you have any trouble setting up the bot, feel free to reach us at either ` +
-              `@abbos_shodiev or @javoxirone.`,
+              `@abbos_shodiev or @javoxirone.\n\n` +
+              `-> Special thanks go to @freecaandy for designing the logo for this bot. `,
 
     guide: `-> To set up this bot, you'll need to provide your canvas token. ` +
            `You can obtain this token at https://worldclassroom.webster.edu/profile/settings.\n\n` +
