@@ -10,8 +10,8 @@ import updateTokenOfUserOnDB from "./utils/database/handleToken.js";
 import getTokenOfUserFromDB from "./utils/database/getToken.js";
 import scheduleNotificationsForAllUsers from "./utils/bot/scheduleNotificationsForAllUsers.js";
 
-async function main()
-{
+async function main() {
+
     await scheduleNotificationsForAllUsers();
 
     bot.start(async (ctx) => {
@@ -54,7 +54,8 @@ async function main()
         if (token !== null) {
 
             const resources = new Resources(token, userID);
-            const assignments = (await resources.getAssignments()).filter((item) => {
+            const assignments = (await resources.getAssignments())
+            .filter((item) => {
 
                 const date = new Date();
                 const deadline = new Date(item.deadline);
@@ -107,13 +108,25 @@ async function main()
         if (replyTo && replyTo == "Enter your token:") 
         {
             const CANVAS_TOKEN = ctx.text;
-            const isTokenValid = await validateToken(CANVAS_TOKEN);
+            const isTokenValid = await validateToken(CANVAS_TOKEN, ctx);
     
             if (isTokenValid) 
             {
+                await ctx.reply(
+                    "✅",
+                    { reply_to_message_id: ctx.message.message_id }
+                );
                 const userID = ctx.from.id;
     
                 await updateTokenOfUserOnDB(userID, CANVAS_TOKEN);
+
+                await ctx.sendMessage(
+                    `-> The bot is up and running!\n\n` +
+                    `-> From now on, if you have any deadline expiring ` +
+                    `in 6 hours, you will receive notification about it!`
+                );
+
+                await startCronTask(userID);
     
                 const resources = new Resources(CANVAS_TOKEN, userID);
     
@@ -130,21 +143,17 @@ async function main()
                 {
                     scheduleNotifications(assignments, resources, userID);
                 }
-
-                await startCronTask(userID);
-    
-                await ctx.sendMessage(
-                    `The bot is up and running! From now on, if you have any deadline that expires ` +
-                    `in 6 hours, you will receive notification about it!`
-                );
     
             } else 
             {
                 await ctx.reply(
-                    "Hmm... looks like something is wrong with your token.",
+                    "❌",
                     { reply_to_message_id: ctx.message.message_id }
                 );
-    
+
+                await ctx.sendMessage(
+                    "Looks like something is wrong with your token."
+                );
             }
         } else 
         {
