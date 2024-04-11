@@ -11,12 +11,8 @@ async function handleAnnouncement() {
 
         bot.telegram.sendMessage(
             user.telegramId,
-            `Special thanks go to @freecaandy for ` +
-            `designing the logo for this bot.`,
+            "ANNOUNCEMENT MESSAGE"
         );
         
     });
 }
-
-
-await handleAnnouncement();
