@@ -13,7 +13,7 @@ import scheduleNotificationsForAllUsers from "./utils/bot/scheduleNotificationsF
 async function main() {
 
     await scheduleNotificationsForAllUsers();
-
+    
     bot.start(async (ctx) => {
 
         const user = ctx.from;
