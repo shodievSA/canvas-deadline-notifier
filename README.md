@@ -1,0 +1,1 @@
+- <b>Telegram bot written in Telegraf.js. This bot is designed for the users of Canvas LMS (Learning Management System) to get notified about upcomming&unsubmitted assignments.</b>
