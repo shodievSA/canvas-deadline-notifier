@@ -54,21 +54,25 @@ async function main() {
         if (token !== null) {
 
             const resources = new Resources(token, userID);
-            const assignments = (await resources.getAssignments())
-            .filter((item) => {
+            const assignments = await resources.getAssignments();
+
+            const filteredAssignments = assignments.filter((item) => {
 
                 const date = new Date();
                 const deadline = new Date(item.deadline);
     
-                if (date.getDay() == deadline.getDay()) return item;
+                if (date.getDay() == deadline.getDay()) 
+                {
+                    return item;
+                }
                 
             });
 
-            if (assignments.length > 0) {
+            if (filteredAssignments.length > 0) {
 
                 let message = ``;
     
-                assignments.map((item, index) => {   
+                filteredAssignments.forEach((item, index) => {   
 
                     const { course, assignment } = item;
                     const deadline = new Date(item.deadline);
@@ -79,6 +83,7 @@ async function main() {
                     message = message + `\n\n${index + 1}.\n\n<b>Course Name:</b> ${course}\n\n` +
                                         `<b>Assignment Name:</b> ${assignment}\n\n` +
                                         `<b>Deadline:</b> ${date}`
+
                 });
     
                 ctx.sendMessage(
