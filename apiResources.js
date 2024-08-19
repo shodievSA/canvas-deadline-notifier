@@ -12,6 +12,8 @@ class Resources {
     #getCourses = async (token) => {
         try {
 
+            console.log(token)
+
             const endpoint = `${this.#root}courses?enrollment_state=active`;
 
             const response = await fetch(endpoint, {
@@ -23,6 +25,11 @@ class Resources {
             const jsonResponse = await response.json();
 
             const courses = [];
+
+            if (jsonResponse.length <= 0)
+            {
+                return;
+            }
 
             for (const { id, name } of jsonResponse) {
 
@@ -79,6 +86,11 @@ class Resources {
                     });
 
                     const jsonResponse = await response.json();
+
+                    if (jsonResponse.length <= 0)
+                    {
+                        return;
+                    }
 
                     for (const assignment of jsonResponse) {
     

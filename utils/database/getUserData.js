@@ -4,17 +4,12 @@ async function getUserData() {
 
     try {
         const userList = await User.findAll({ attributes: ['telegramId', 'canvasToken'] },);
-        const validatedUsers = await Promise.all(userList.map(async (user) => {
+        const validatedUsers = await Promise.all(userList.filter(async (user) => {
             const isValid = await validateToken(user.canvasToken);
-            if (isValid) {
-                return user;
-            } else {
-                return null;
-            }
+            return isValid;
         }));
 
-        const filteredUsers = validatedUsers.filter(user => user !== null);
-        return filteredUsers;
+        return validatedUsers;
     }
     catch (error) {
         console.error("Something went wrong!", error);

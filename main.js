@@ -12,38 +12,39 @@ import scheduleNotificationsForAllUsers from "./utils/bot/scheduleNotificationsF
 
 async function main() {
 
-    await scheduleNotificationsForAllUsers();
-    
+    // await checkForTokenExpirationCronTask();
+    // await scheduleNotificationsForAllUsers();
+
     bot.start(async (ctx) => {
 
         const user = ctx.from;
-    
+
         await registerUserOnDB(user);
         await ctx.sendMessage(messages.greeting);
-    
+
     });
 
     bot.command("instructions", async (ctx) => {
 
         const user = ctx.from;
-    
+
         await registerUserOnDB(user);
         await ctx.sendMessage(messages.guide, { parse_mode: "HTML" });
-    
+
     });
 
     bot.command("set", async (ctx) => {
 
         const user = ctx.from;
-    
+
         const replyMarkup = {
             force_reply: true,
             input_field_placeholder: "Reply with your token"
         };
-    
+
         await registerUserOnDB(user);
         await ctx.sendMessage("Enter your token:", { reply_markup: replyMarkup });
-    
+
     });
 
     bot.command("deadlines", async (ctx) => {
@@ -52,105 +53,109 @@ async function main() {
         const token = await getTokenOfUserFromDB(userID);
 
         if (token !== null) {
+            const isTokenValid = await validateToken(token);
 
-            const resources = new Resources(token, userID);
-            const assignments = await resources.getAssignments();
+            if (isTokenValid == true) {
+                const resources = new Resources(token, userID);
+                const assignments = await resources.getAssignments();
 
-            const filteredAssignments = assignments.filter((item) => {
+                if (assignments.length > 0) {
+                    const filteredAssignments = assignments.filter((item) => {
 
-                const date = new Date();
-                const deadline = new Date(item.deadline);
-    
-                if (date.getDay() == deadline.getDay()) 
-                {
-                    return item;
-                }
-                
-            });
+                        const date = new Date();
+                        const deadline = new Date(item.deadline);
 
-            if (filteredAssignments.length > 0) {
+                        if (date.getDay() == deadline.getDay()) {
+                            return item;
+                        }
 
-                let message = ``;
-    
-                filteredAssignments.forEach((item, index) => {   
+                    });
 
-                    const { course, assignment } = item;
-                    const deadline = new Date(item.deadline);
-    
-                    let date = deadline.toDateString();
-                    date = `${date} ${String(deadline.getHours())}:${String(deadline.getMinutes())}`;
-    
-                    message = message + `\n\n${index + 1}.\n\n<b>Course Name:</b> ${course}\n\n` +
-                                        `<b>Assignment Name:</b> ${assignment}\n\n` +
-                                        `<b>Deadline:</b> ${date}`
+                    if (filteredAssignments.length > 0) {
 
-                });
-    
-                ctx.sendMessage(
-                    message,
-                    {
-                        parse_mode: "HTML"
+                        let message = ``;
+
+                        filteredAssignments.forEach((item, index) => {
+
+                            const { course, assignment } = item;
+                            const deadline = new Date(item.deadline);
+
+                            let date = deadline.toDateString();
+                            date = `${date} ${String(deadline.getHours())}:${String(deadline.getMinutes())}`;
+
+                            message = message + `\n\n${index + 1}.\n\n<b>Course Name:</b> ${course}\n\n` +
+                                `<b>Assignment Name:</b> ${assignment}\n\n` +
+                                `<b>Deadline:</b> ${date}`
+
+                        });
+
+                        ctx.sendMessage(
+                            message,
+                            {
+                                parse_mode: "HTML"
+                            }
+                        )
+
                     }
-                )
-
-            } else {
-
-                ctx.sendMessage("You don't have any deadlines today.");
-
+                    else {
+                        ctx.sendMessage("You don't have any deadlines today.");
+                    }
+                }
+                else {
+                    ctx.sendMessage("You don't have any deadlines today.");
+                }
+            }
+            else {
+                ctx.sendMessage("Looks like your token might have expired. Run the /set command to refresh your token.");
             }
         }
         else {
-
             ctx.sendMessage("You didn't provide your token!");
-
         }
+
     });
 
     bot.on("message", async (ctx) => {
 
         const replyTo = ctx.update.message?.reply_to_message?.text;
-    
-        if (replyTo && replyTo == "Enter your token:") 
-        {
-            const CANVAS_TOKEN = ctx.text;
-            const isTokenValid = await validateToken(CANVAS_TOKEN, ctx);
-    
-            if (isTokenValid) 
-            {
-                await ctx.reply(
-                    "✅",
-                    { reply_to_message_id: ctx.message.message_id }
-                );
-                const userID = ctx.from.id;
-    
-                await updateTokenOfUserOnDB(userID, CANVAS_TOKEN);
 
-                await ctx.sendMessage(
-                    `-> The bot is up and running!\n\n` +
-                    `-> From now on, if you have any deadline expiring ` +
-                    `in 6 hours, you will receive notification about it!`
-                );
+        if (replyTo && replyTo == "Enter your token:") {
+
+                const CANVAS_TOKEN = ctx.text;
+                const isTokenValid = await validateToken(CANVAS_TOKEN);
+
+                if (isTokenValid) {
+                    await ctx.reply(
+                        "✅",
+                        { reply_to_message_id: ctx.message.message_id }
+                    );
+                    const userID = ctx.from.id;
+
+                    await updateTokenOfUserOnDB(userID, CANVAS_TOKEN);
+
+                    await ctx.sendMessage(
+                        `-> The bot is up and running!\n\n` +
+                        `-> From now on, if you have any deadline expiring ` +
+                        `in 6 hours, you will receive notification about it!`
+                    );
 
                 await startCronTask(userID);
-    
+
                 const resources = new Resources(CANVAS_TOKEN, userID);
-    
+
                 const assignments = (await resources.getAssignments())
-                .filter((assignment) => 
-                {
-                    const notificationTime = Date.parse(assignment.deadline) - sixHours;
-                    const currentTime = new Date().getTime();
-    
-                    if (currentTime < notificationTime) return assignment;
-                });
-    
-                if (assignments.length > 0) 
-                {
+                    .filter((assignment) => {
+                        const notificationTime = Date.parse(assignment.deadline) - sixHours;
+                        const currentTime = new Date().getTime();
+
+                        if (currentTime < notificationTime) return assignment;
+                    });
+
+                if (assignments.length > 0) {
                     scheduleNotifications(assignments, resources, userID);
                 }
-    
-            } else 
-            {
+
+            } else {
                 await ctx.reply(
                     "❌",
                     { reply_to_message_id: ctx.message.message_id }
@@ -160,10 +165,10 @@ async function main() {
                     "Looks like something is wrong with your token."
                 );
             }
-        } else 
-        {
+        
+        } else {
             ctx.deleteMessage(ctx.message.message_id);
-    
+
         }
     });
     bot.launch();
