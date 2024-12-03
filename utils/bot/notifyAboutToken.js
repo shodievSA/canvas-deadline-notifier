@@ -8,7 +8,8 @@ async function notifyAboutToken() {
         userList.forEach(item => {
             bot.telegram.sendMessage(
                 item.telegramId,
-                "You need to provide your canvas token so that the bot could notify you about your deadlines. To learn how to obtain the token, run the /instructions command.",
+                "You need to provide your canvas token so that the bot could notify you about your deadlines. " +
+                "To learn how to obtain the token, run the /instructions command.",
                 { disable_notification: true, },
             )
         })

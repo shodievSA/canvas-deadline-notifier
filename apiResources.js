@@ -87,9 +87,8 @@ class Resources {
 
                     const jsonResponse = await response.json();
 
-                    if (jsonResponse.length <= 0)
-                    {
-                        return;
+                    if (jsonResponse.length == 0) {
+                        continue;
                     }
 
                     for (const assignment of jsonResponse) {
@@ -100,7 +99,8 @@ class Resources {
                                 deadline: assignment.due_at, 
                                 assignment: assignment.name, 
                                 course: course.name,
-                                id: assignment.id 
+                                id: assignment.id,
+                                description: assignment.description
                             });
 
                         };
@@ -108,8 +108,11 @@ class Resources {
                     };
 
                 } catch(error) {
+
                     console.log(error);
+                    
                 };
+
             };
 
             return assignments;

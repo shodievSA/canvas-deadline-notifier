@@ -9,9 +9,8 @@ async function startCronTask(userID)
     const resources = new Resources(token, userID);
 
     const job = new CronJob(
-        "5 0 * * *",
-        async function()
-        {
+        "0 5 0 * * *",
+        async function() {
             const assignments = await resources.getAssignments(); 
             scheduleNotifications(assignments, resources, userID);
         }

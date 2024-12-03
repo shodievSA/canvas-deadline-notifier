@@ -27,6 +27,10 @@ export const User = sequelize.define('User', {
     },
     canvasToken: {
         type: DataTypes.STRING,
+    },
+    notificationTime: {
+        type: DataTypes.INTEGER,
+        defaultValue: 6
     }
 });
 

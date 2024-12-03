@@ -1,40 +1,58 @@
-import { sixHours } from "../../time.js";
 import { bot } from "../../config/integrations.js";
+import getUserNotificationTime from "../database/getUserNotificationTime.js";
+import formatNotificationMessage from "./formatNotificationMessage.js";
+import convertHtmlToPdf from "../convertHtmlToPdf.js";
+import fs from "fs";
 
-async function scheduleNotifications(assignments, resources, telegramId) 
-{
-    for (const assignment of assignments) 
-    {
+async function scheduleNotifications(assignments, resources, telegramId) {
+
+    const userNotificationTime_before = await getUserNotificationTime(telegramId);
+
+    for (const assignment of assignments) {
+
         const currentTime = new Date().getTime();
         const deadline = Date.parse(assignment.deadline);
 
-        const delay = deadline - currentTime - sixHours;
+        const delay = deadline - currentTime - (userNotificationTime_before * 60 * 60 * 1000);
 
         setTimeout(async () => {
 
-            const assignmentIDs = (await resources.getAssignments()).map((obj) => obj.id);
+            const userNotificationTime_after = await getUserNotificationTime(telegramId);
 
-            if (assignmentIDs.includes(assignment.id)) 
-            {
-                const deadline = new Date(assignment.deadline);
-                
-                let date = deadline.toDateString();
-                date = `${date} ${String(deadline.getHours())}:${String(deadline.getMinutes())}`;
+            if (userNotificationTime_after == userNotificationTime_before) {
 
-                bot.telegram.sendMessage(
-                    telegramId,
-                    `You have the following deadline expire in <b>6 hours</b>:\n\n` +
-                    `<b>Course Name</b>: ${assignment.course}\n\n` +
-                    `<b>Assignment Name</b>: ${assignment.assignment}\n\n` +
-                    `<b>Deadline</b>: ${date}\n\n` +
-                    `<b>Hurry up!</b>`,
-                    {
-                        parse_mode: "HTML"
-                    }
-                );
-            };
+                const assignmentIDs = (await resources.getAssignments()).map((obj) => obj.id);
+
+                if (assignmentIDs.includes(assignment.id)) {
+
+                    await convertHtmlToPdf(
+                        assignment.description,
+                        telegramId
+                    );
+
+                    const message = formatNotificationMessage(assignment);
+
+                    await bot.telegram.sendDocument(
+                        telegramId, 
+                        {
+                            source: `media/${telegramId}-assignment.pdf`
+                        },
+                        { 
+                            caption: message,
+                            parse_mode: "HTML" 
+                        }
+                    );
+
+                    fs.unlinkSync(`./media/${telegramId}-assignment.pdf`);
+
+                };
+
+            }
+
         }, delay);
-    };
+        
+    }
+
 };
 
 export default scheduleNotifications;

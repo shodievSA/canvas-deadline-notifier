@@ -1,4 +1,4 @@
-import { bot } from "./config/integrations.js";
+import { bot } from "../../config/integrations.js";
 import getUserData from "../database/getUserData.js";
 import validateToken from "./tokenValidation.js";
 
@@ -14,10 +14,19 @@ async function checkForTokenExpirationCronTask()
 
             if (isTokenValid == false)
             {
-                bot.telegram.sendMessage(
-                    user.telegramId,
-                    "Looks like your token might have expired. Run the /set command to refresh your token."
-                );
+                try {
+
+                    await bot.telegram.sendMessage(
+                        user.telegramId,
+                        'Looks like your token might have expired. ' +
+                        'Click "🔄 Update token" button to learn how to refresh your token.'
+                    );
+
+                } catch (error) {
+
+                    console.log(error);
+
+                }
             }
 
         });

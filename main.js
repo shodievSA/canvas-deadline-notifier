@@ -1,6 +1,6 @@
 import { bot } from "./config/integrations.js";
+import { Markup } from "telegraf";
 import { messages } from "./messages.js";
-import { sixHours } from "./time.js";
 import Resources from "./apiResources.js";
 import scheduleNotifications from "./utils/bot/notifications.js";
 import startCronTask from "./cronTask.js";
@@ -8,169 +8,359 @@ import validateToken from "./utils/bot/tokenValidation.js"
 import registerUserOnDB from "./utils/database/registerUser.js";
 import updateTokenOfUserOnDB from "./utils/database/handleToken.js";
 import getTokenOfUserFromDB from "./utils/database/getToken.js";
+import updateUserNotificationTime from "./utils/database/updateUserNotificationTime.js";
 import scheduleNotificationsForAllUsers from "./utils/bot/scheduleNotificationsForAllUsers.js";
+import checkForTokenExpirationCronTask from "./utils/bot/checkForTokenExpirationCronTask.js";
+import getUserNotificationTime from "./utils/database/getUserNotificationTime.js";
+import convertHtmlToPdf from "./utils/convertHtmlToPdf.js";
+import formatNotificationMessage from "./utils/bot/formatNotificationMessage.js";
+import fs from "fs";
 
 async function main() {
 
-    // await checkForTokenExpirationCronTask();
-    // await scheduleNotificationsForAllUsers();
+    await checkForTokenExpirationCronTask();
+    await scheduleNotificationsForAllUsers();
 
     bot.start(async (ctx) => {
 
         const user = ctx.from;
 
         await registerUserOnDB(user);
-        await ctx.sendMessage(messages.greeting);
+        await ctx.reply(
+            messages.greeting,
+            Markup.keyboard([
+                ["⚙️ Set up the bot"]
+            ])  
+            .resize()
+        );
 
     });
 
-    bot.command("instructions", async (ctx) => {
+    bot.hears("⚙️ Set up the bot", async (ctx) => {
 
         const user = ctx.from;
 
         await registerUserOnDB(user);
-        await ctx.sendMessage(messages.guide, { parse_mode: "HTML" });
+        await ctx.replyWithHTML(
+            messages.guide,
+            Markup.keyboard([
+                ["🔑 Enter my token"]
+            ])
+            .resize()
+            .oneTime()
+        );
 
     });
 
-    bot.command("set", async (ctx) => {
+    bot.hears("🔑 Enter my token", async (ctx) => {
 
         const user = ctx.from;
 
-        const replyMarkup = {
-            force_reply: true,
-            input_field_placeholder: "Reply with your token"
-        };
-
         await registerUserOnDB(user);
-        await ctx.sendMessage("Enter your token:", { reply_markup: replyMarkup });
+        await ctx.reply(
+            "Send us your token: ",
+            {
+                reply_markup: {
+                    force_reply: true,
+                    input_field_placeholder: "Paste your token"
+                }
+            }
+        );
 
     });
 
-    bot.command("deadlines", async (ctx) => {
+    bot.hears("🔑 Enter my new token", async (ctx) => {
+
+        const user = ctx.from;
+
+        await registerUserOnDB(user);
+        await ctx.reply(
+            "Send us your new token:",
+            {
+                reply_markup: {
+                    force_reply: true,
+                    input_field_placeholder: "Paste your token"
+                }
+            }
+        );
+
+    });
+
+    bot.hears("🔄 Update token", async (ctx) => {
+
+        const user = ctx.from;
+
+        await registerUserOnDB(user);
+        await ctx.replyWithHTML(
+            messages.updateTokenGuide, 
+            Markup.keyboard([
+                ["🔑 Enter my new token"],
+                ["🏠 Main menu"]
+            ])
+            .resize()
+        );
+
+    });
+
+    bot.hears("🏠 Main menu", async (ctx) => {
+
+        const mainKeyboard = Markup.keyboard([
+            ["🔄 Update token", "🔔 Notifications"],
+            ["⏳ Today's deadlines"]
+        ]).resize()
+        
+        ctx.reply(
+            'Back to the main menu:', 
+            mainKeyboard,
+        );
+
+    });
+
+    bot.hears("🔔 Notifications", async (ctx) => {
+
+        const userNotificationTime = await getUserNotificationTime(ctx.from.id);
+
+        ctx.reply(
+            "You can adjust how many hours in advance you'd " +
+            "like to be notified before the deadline expires: ",
+            Markup.inlineKeyboard([
+                Markup.button.callback(
+                    userNotificationTime === 6 ? "✅ 6 hours" : "6 hours",
+                    userNotificationTime === 6 ? "disabled" : "6_hours"
+                ),
+			    Markup.button.callback(
+                    userNotificationTime === 12 ? "✅ 12 hours" : "12 hours",
+                    userNotificationTime === 12 ? "disabled" : "12_hours"
+                ),
+                Markup.button.callback(
+                    userNotificationTime === 24 ? "✅ 24 hours" : "24 hours",
+                    userNotificationTime === 24 ? "disabled" : "24_hours"
+                )
+            ])
+        );
+
+    });
+
+    bot.on("callback_query", async (ctx) => {
+
+        const telegramId = ctx.from.id;
+        const callbackData = ctx.callbackQuery.data;
+        
+        if (callbackData !== "disabled") {
+
+            if (callbackData === "6_hours") {
+
+                await updateUserNotificationTime(telegramId, 6);
+                await ctx.editMessageReplyMarkup({
+                    inline_keyboard: [[
+                        Markup.button.callback(
+                            "✅ 6 hours", "disabled"
+                        ),
+                        Markup.button.callback(
+                            "12 hours", "12_hours"
+                        ),
+                        Markup.button.callback(
+                            "24 hours", "24_hours"
+                        )
+                    ]]
+                });
+    
+            } else if (callbackData === "12_hours") {
+    
+                await updateUserNotificationTime(telegramId, 12);
+                await ctx.editMessageReplyMarkup({
+                    inline_keyboard: [[
+                        Markup.button.callback(
+                            "6 hours", "6_hours"
+                        ),
+                        Markup.button.callback(
+                            "✅ 12 hours", "disabled"
+                        ),
+                        Markup.button.callback(
+                            "24 hours", "24_hours"
+                        )
+                    ]]
+                });
+    
+            } else if (callbackData === "24_hours") {
+    
+                await updateUserNotificationTime(telegramId, 24);
+                await ctx.editMessageReplyMarkup({
+                    inline_keyboard: [[
+                        Markup.button.callback(
+                            "6 hours", "6_hours"
+                        ),
+                        Markup.button.callback(
+                            "12 hours", "12_hours"
+                        ),
+                        Markup.button.callback(
+                            "✅ 24 hours", "disabled"
+                        )
+                    ]]
+                });
+    
+            }
+    
+            const token = await getTokenOfUserFromDB(telegramId);
+            const resources = new Resources(token, telegramId);
+            const assignments = await resources.getAssignments();
+    
+            if (assignments.length > 0) {
+    
+                await scheduleNotifications(
+                    assignments,
+                    resources,
+                    telegramId
+                );
+    
+            }
+
+            ctx.answerCbQuery();
+
+        } else {
+
+            ctx.answerCbQuery();
+
+        }
+
+    });
+
+    bot.hears("⏳ Today's deadlines", async (ctx) => {
 
         const userID = ctx.from.id;
         const token = await getTokenOfUserFromDB(userID);
+        const isTokenValid = await validateToken(token);
 
-        if (token !== null) {
-            const isTokenValid = await validateToken(token);
+        if (isTokenValid == true) {
 
-            if (isTokenValid == true) {
-                const resources = new Resources(token, userID);
-                const assignments = await resources.getAssignments();
+            const resources = new Resources(token, userID);
+            const assignments = await resources.getAssignments();
 
-                if (assignments.length > 0) {
-                    const filteredAssignments = assignments.filter((item) => {
+            if (assignments.length > 0) {
 
-                        const date = new Date();
-                        const deadline = new Date(item.deadline);
+                assignments.forEach(async (item, index) => {
 
-                        if (date.getDay() == deadline.getDay()) {
-                            return item;
-                        }
+                    await convertHtmlToPdf(item.description, userID);
 
-                    });
+                    const message = formatNotificationMessage(item);
 
-                    if (filteredAssignments.length > 0) {
+                    await ctx.replyWithDocument(
+                        { source: `./media/${userID}-assignment.pdf` },
+                        { caption: message, parse_mode: "HTML" }
+                    );
 
-                        let message = ``;
+                    fs.unlinkSync(`./media/${userID}-assignment.pdf`);
 
-                        filteredAssignments.forEach((item, index) => {
+                });
 
-                            const { course, assignment } = item;
-                            const deadline = new Date(item.deadline);
+            } else {
 
-                            let date = deadline.toDateString();
-                            date = `${date} ${String(deadline.getHours())}:${String(deadline.getMinutes())}`;
+                ctx.sendMessage("You don't have any deadlines today.");
 
-                            message = message + `\n\n${index + 1}.\n\n<b>Course Name:</b> ${course}\n\n` +
-                                `<b>Assignment Name:</b> ${assignment}\n\n` +
-                                `<b>Deadline:</b> ${date}`
-
-                        });
-
-                        ctx.sendMessage(
-                            message,
-                            {
-                                parse_mode: "HTML"
-                            }
-                        )
-
-                    }
-                    else {
-                        ctx.sendMessage("You don't have any deadlines today.");
-                    }
-                }
-                else {
-                    ctx.sendMessage("You don't have any deadlines today.");
-                }
             }
-            else {
-                ctx.sendMessage("Looks like your token might have expired. Run the /set command to refresh your token.");
-            }
-        }
-        else {
-            ctx.sendMessage("You didn't provide your token!");
+
+        } else {
+
+            ctx.reply(
+                "Looks like your token might have expired. " +
+                "Click \"🔄 Update token\" button to refresh your token."
+            );
+
         }
 
     });
 
     bot.on("message", async (ctx) => {
 
-        const replyTo = ctx.update.message?.reply_to_message?.text;
+        const isUserMessageReply = ctx.update.message?.reply_to_message?.text;
 
-        if (replyTo && replyTo == "Enter your token:") {
+        if (isUserMessageReply) {
 
-                const CANVAS_TOKEN = ctx.text;
-                const isTokenValid = await validateToken(CANVAS_TOKEN);
+            const CANVAS_TOKEN = ctx.text;
+            const isTokenValid = await validateToken(CANVAS_TOKEN);
 
-                if (isTokenValid) {
+            if (isTokenValid) {
+
+                await ctx.reply(
+                    "✅",
+                    { reply_to_message_id: ctx.message.message_id }
+                );
+
+                const userID = ctx.from.id;
+
+                await updateTokenOfUserOnDB(userID, CANVAS_TOKEN);
+
+                if (isUserMessageReply == "Send us your token:") {
+
                     await ctx.reply(
-                        "✅",
-                        { reply_to_message_id: ctx.message.message_id }
+                        `The bot is up and running!\n\n` +
+                        `By default, you'll receive notifications 6 hours before the deadline. ` +
+                        `For example, if you have a deadline expiring at 11:59p.m, you'll be notified about it at 18:00p.m.\n\n` +
+                        `You can change this by clicking "🔔 Notifications" button.`,
+                        Markup.keyboard([
+                            ["🔄 Update token", "🔔 Notifications"],
+                            ["⏳ Today's deadlines"]
+                        ])
+                        .resize()
                     );
-                    const userID = ctx.from.id;
 
-                    await updateTokenOfUserOnDB(userID, CANVAS_TOKEN);
+                } else if (isUserMessageReply == "Send us your new token:") {
 
-                    await ctx.sendMessage(
-                        `-> The bot is up and running!\n\n` +
-                        `-> From now on, if you have any deadline expiring ` +
-                        `in 6 hours, you will receive notification about it!`
+                    await ctx.reply(
+                        `You have updated your token successfully! ` +
+                        `You'll start receiving notifications from our bot again.`,
+                        Markup.keyboard([
+                            ["🔄 Update token", "🔔 Notifications"],
+                            ["⏳ Today's deadlines"]
+                        ])
+                        .resize()
                     );
+
+                }
 
                 await startCronTask(userID);
 
                 const resources = new Resources(CANVAS_TOKEN, userID);
-
-                const assignments = (await resources.getAssignments())
-                    .filter((assignment) => {
-                        const notificationTime = Date.parse(assignment.deadline) - sixHours;
-                        const currentTime = new Date().getTime();
-
-                        if (currentTime < notificationTime) return assignment;
-                    });
+                const assignments = await resources.getAssignments();
 
                 if (assignments.length > 0) {
-                    scheduleNotifications(assignments, resources, userID);
+
+                    scheduleNotifications(
+                        assignments, 
+                        resources, 
+                        userID
+                    );
+
                 }
 
             } else {
+
                 await ctx.reply(
                     "❌",
                     { reply_to_message_id: ctx.message.message_id }
                 );
 
-                await ctx.sendMessage(
-                    "Looks like something is wrong with your token."
+                await ctx.reply(
+                    "Looks like something is wrong with your token. " +
+                    "To fix the problem:\n\n1. Regenerate your token.\n\n" +
+                    "2. Make sure you have set the appropriate expiration date for your token.\n\n" +
+                    "3. Make sure you have copied your token correctly.\n\n" +
+                    "4. Click \"🔑 Enter my token\" button and then send your token.\n\n\n" +
+                    "If the error persists, feel free to contact us at @abbos_shodiev or @javoxirone.",
+                    Markup.keyboard([["🔑 Enter my token"]])
+                    .resize()
                 );
+
             }
-        
+
         } else {
-            ctx.deleteMessage(ctx.message.message_id);
+
+            ctx.deleteMessage(ctx.update.message.message_id);
 
         }
+        
     });
+
     bot.launch();
 }
 
